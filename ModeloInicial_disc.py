@@ -71,6 +71,11 @@ for i in range(0,297):
 sep = int(0.8*len(datos))
 datos_train = datos[:sep]
 
+# descargar datos de prueba
+datos_test = datos[sep:]
+#df = pd.DataFrame(datos_test)
+#df.to_csv('datos_test.csv', index=False)
+
 from pgmpy.models import BayesianNetwork
 modelo = BayesianNetwork([("sex", "chol"), ("age", "chol"), ("age", "fbs"),("thal", "trestbps"), ("chol", "num"),("fbs", "trestbps"), ("trestbps", "num"),("num", "ca"),("num", "thalach"),("num", "exang"),("num", "restecg"),("exang", "cp"),("cp", "oldpeak"),( "restecg","oldpeak"),("restecg","slope")])
 
@@ -84,9 +89,7 @@ infer = VariableElimination(modelo)
 # write model to a BIF file 
 from pgmpy.readwrite import BIFWriter
 writer = BIFWriter(modelo)
-writer.write_bif(filename='ModeloInicial.bif') 
-
-
+writer.write_bif(filename='ModeloInicial.bif')
 
 
 
