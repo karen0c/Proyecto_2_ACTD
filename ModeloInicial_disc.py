@@ -68,7 +68,7 @@ for i in range(0,297):
         datos.loc[i, "num"] = 1
 
 # separar datos para entrenamiento y test
-sep = int(0.8*len(datos))
+sep = int(0.8*len(datos_iniciales))
 datos_train = datos[:sep]
 
 # descargar datos de prueba
@@ -79,21 +79,16 @@ datos_test = datos[sep:]
 from pgmpy.models import BayesianNetwork
 modelo = BayesianNetwork([("sex", "chol"), ("age", "chol"), ("age", "fbs"),("thal", "trestbps"), ("chol", "num"),("fbs", "trestbps"), ("trestbps", "num"),("num", "ca"),("num", "thalach"),("num", "exang"),("num", "restecg"),("exang", "cp"),("cp", "oldpeak"),( "restecg","oldpeak"),("restecg","slope")])
 
-from pgmpy.estimators import MaximumLikelihoodEstimator 
-emv = MaximumLikelihoodEstimator(model=modelo, data=datos_train)
+from pgmpy.estimators import BayesianEstimator
+emv = BayesianEstimator(model=modelo, data=datos_train)
 
-modelo.fit(data=datos_train, estimator = MaximumLikelihoodEstimator) 
+modelo.fit(data=datos_train, estimator = BayesianEstimator)   
 modelo.check_model()
-infer = VariableElimination(modelo)
 
 # write model to a BIF file 
 from pgmpy.readwrite import BIFWriter
 writer = BIFWriter(modelo)
 writer.write_bif(filename='ModeloInicial.bif')
-
-
-
-
 
 
 
