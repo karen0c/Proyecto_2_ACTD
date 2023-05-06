@@ -4,14 +4,13 @@ Created on Sun Mar 12 16:53:01 2023
 
 @author: karen
 """
+#pip install dash-bootstrap-components
 import dash
 from dash import dcc  # dash core components
-from dash import html # dash html components
+#from dash import html # dash html components
 from dash.dependencies import Input, Output
 from pgmpy.inference import VariableElimination
 
-
-import plotly.express as px
 
 import pandas as pd
 
@@ -101,28 +100,44 @@ modelo.fit(data=datos, estimator = BayesianEstimator)
 infer = VariableElimination(modelo)
 
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+#external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
+import dash_bootstrap_components as dbc
+import dash_html_components as html
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+# Crear la aplicación Dash
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
 server = app.server
 
 # Define el diseño de la aplicación Dash con dos pestañas
-app.layout1 = html.Div(['una parte'
-   
-    ])
 
-app.layout2 = html.Div(
-    [ 
-       html.Div([
-       html.Img(src='https://archive-beta.ics.uci.edu/static/public/45/Thumbnails/Large.jpg?30',
-                 style={'height': '70%', 'width': 'auto','max-width': '100%'}),
-        html.H1(children='¿Acaso tengo una enfermedad cardiaca?',
-                style={'textAlign': 'center', 'marginTop': '25px', "width": "80%", 'fontSize': '3vw'}),
-        html.Img(src='https://educacion.uniandes.edu.co/sites/default/files/Uniandes.png',
-                 style={'height': '50%', 'width': 'auto', 'max-width': '100%'})
-    ], style={'display': 'flex', 'height': '120px', "width": "100%"}),
-    html.Br(),
+
+# Definir el contenido de la primera pestaña
+tab1_content = dbc.Card(
+    dbc.CardBody([
+    html.H2('¿Qué dicen los datos?'),
+    html.P(children='Queremos proporcionarte información relevante sobre la enfermedad cardiaca, basada en estadísticas del conjunto de datos Heart Disease disponible en el repositorio de la Universidad de California en Irvine. Esperamos que esta información sea útil para ti.' ),
+    html.Div([
+        
+    html.Div([
+        dcc.Graph(id='grafico1')],
+        style={'width': '33%', 'display': 'inline-block'}),
+        
+    html.Div([
+        dcc.Graph(id='grafico2')],
+        style={'width': '33%', 'display': 'inline-block'}),
+        
+    html.Div([
+        dcc.Graph(id='grafico3')],
+        style={'width': '33%', 'display': 'inline-block'})
+    ], style={'display': 'flex'})
+    
+],  style={'margin': '30px'}))
+ 
+
+tab2_content=dbc.Card(
+    dbc.CardBody([
     html.P(children='Aquí te brindamos una herramienta que puedes utilizar desde casa donde te mostramos qué tan probable es que tengas una enfermedad cardiaca y con ello, queremos ayudarte a tomar la decisión de consultar o no a tu médico de acuerdo con tus síntomas.' ),
     html.Br(),
     
@@ -139,7 +154,7 @@ app.layout2 = html.Div(
                         {'label': 'Mayor a 60 años', 'value': 4}
             ],
             value='-1'
-        )],  style={'width': '50%'}),   
+        )],  style={'width': '50%', 'marginRight': '50px'}),   
         html.Div(['Sexo:',
         dcc.Dropdown(
             id='input_sex',
@@ -160,7 +175,7 @@ app.layout2 = html.Div(
                     {'label': 'Mayor o igual a 240', 'value': 3},
                 ],
                 value='-1'
-            )],  style={'width': '50%'}),
+            )],  style={'width': '50%','marginRight': '50px'}),
             
             html.Div(['Nivel de presión arterial en reposo:',
             dcc.Dropdown(
@@ -185,7 +200,7 @@ app.layout2 = html.Div(
                     {'label': 'Defecto reversible', 'value': 7},
                 ],
                 value='-1'
-            )],  style={'width': '50%'}),
+            )],  style={'width': '50%', 'marginRight': '50px'}),
             
             html.Div(['El nivel de azucar en la sangre en ayunas es mayor a 120 mg/dl:',
             dcc.Dropdown(
@@ -198,18 +213,40 @@ app.layout2 = html.Div(
                 value='-1'
             )], style={'width': '50%'})],  style={'display': 'flex', "width": "100%"}),
     html.Br(),
-    html.H6("A continuación te presentamos la probabilidad de tener cierto tipo de enfermedad cardiaca:"),
+    html.H6("A continuación te presentamos la probabilidad de tener o no una enfermedad cardiaca:"),
     html.Br(),
     html.Div([
         html.Div(
         dcc.Graph(id='grafico'),
-         style={'width': '50%'}),
+         style={'width': '60%'}),
         html.Div([
             html.Br(),
             html.Div(id='recomendación')],
-            style={'textAlign': 'center','marginTop':'150px','width': '50%'})], style={'display': 'flex','width': '100%'}, className='row'),
+            style={'textAlign': 'left','marginTop':'150px','width': '30%'})], style={'display': 'flex','width': '100%'}, className='row'),
     ],  style={'margin': '30px'}
-)
+))
+
+# Definir las pestañas
+tabs = dbc.Tabs([
+    dbc.Tab(label='Datos de interés', tab_id='tab-1', children=[tab1_content]),
+    dbc.Tab(label='Obten aquí tu probabilidad', tab_id='tab-2', children=[tab2_content]),
+], id='tabs', active_tab='tab-1', className="nav nav-tabs")
+
+
+# Definir el diseño de la aplicación
+app.layout = dbc.CardBody([
+       html.Div([
+       html.Img(src='https://archive-beta.ics.uci.edu/static/public/45/Thumbnails/Large.jpg?30',
+                 style={'height': '70%', 'width': 'auto','max-width': '100%'}),
+        html.H1(children='¿Acaso tengo una enfermedad cardiaca?',
+                style={'textAlign': 'center', 'marginTop': '25px', "width": "80%", 'fontSize': '3vw'}),
+        html.Img(src='https://educacion.uniandes.edu.co/sites/default/files/Uniandes.png',
+                 style={'height': '50%', 'width': 'auto', 'max-width': '100%'})
+    ], style={'display': 'flex', 'height': '120px', "width": "100%"}),
+    html.Br(),
+    tabs
+    
+ ], style={'margin': '30px'})
 
 
 @app.callback(
@@ -222,10 +259,9 @@ app.layout2 = html.Div(
      Input(component_id='input_chol', component_property='value'),
      Input(component_id='input_trestbps', component_property='value'),
      Input(component_id='input_thal', component_property='value'),
-     Input(component_id='input_fbs', component_property='value'),
-     ]
+     Input(component_id='input_fbs', component_property='value')
+     ])
     
-)
 
 
 def update_pie_chart(input_age, input_sex, input_chol, input_trestbps, input_thal, input_fbs):
@@ -245,25 +281,38 @@ def update_pie_chart(input_age, input_sex, input_chol, input_trestbps, input_tha
     
     num_states = modelo.get_cpds("num").state_names["num"]
     
-    # Ejemplo de valores para el gráfico de torta
-    labels = ['Sin presencia de enfermedad', 'Presencia de enfermedad cardiaca']
+    # valores para el gráfico de torta
+    labels = ['Ausencia de enfermedad cardiaca', 'Presencia de enfermedad cardiaca']
     values = [posterior_p.values[num_states.index(0)], posterior_p.values[num_states.index(1)]]
+    
     
     # Crear el objeto Pie de Plotly
     #if isinstance(values[0], (int, float)):
-    figura = px.pie(labels=labels, 
-                        values=values,
-                        hover_name=labels,
-                        color_discrete_sequence=["green", "red"]
+    
+     
+        
+    import plotly.graph_objs as go
+    figura = go.Figure(go.Pie(labels=labels, 
+                          values=values,
+                          textfont={'size': 20},
+                          #hole=0.5,
+                          hoverinfo='label+percent',
+                          marker=dict(colors=["greenyellow", "red"],
+                                      line=dict(color='#000000', width=1)),
+                          #textposition='outside',
+                          pull = [0, 0.2]
+                         ), layout=(go.Layout( margin=dict(l=100, r=10, t=10, b=10))                     
                         )
+)
+    figura.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)")  
     if values[0] > 0.8 :
-            recomendación = 'Como la probabilidad de que no tengas una enfermedad cardiaca es alta, te sugerimos continuar con tus chequeos de control, teniendo en cuenta que no es urgente que consultes un médico especialista.'
+            recomendación = 'Como la probabilidad de que no tengas una enfermedad cardiaca es alta ('+'{:.0%}'.format(values[0]) +'), te sugerimos continuar con tus chequeos de control, teniendo en cuenta que no es urgente que consultes un médico especialista.'
     elif values[0] > 0.5:
-            recomendación = 'A pesar de que la probabilidad de que tengas una enfermedad cardiaca no es tan alta, te sugerimos consultar a un médico especialista y así decartar que tengas una enfermedad cardiaca.'
+            recomendación = 'A pesar de que la probabilidad de que tengas una enfermedad cardiaca no es tan alta ('+ '{:.0%}'.format(values[1]) +'), te sugerimos consultar a un médico especialista y así decartar que tengas una enfermedad cardiaca.'
     elif values[0] > 0.25:
-            recomendación = 'De acuerdo con tus características, es probable que tengas una enfermedad cardiaca, te sugerimos consultar a un médico especialista en el menor tiempo posible.'
+            recomendación = 'De acuerdo con tus características, es probable que tengas una enfermedad cardiaca ('+'{:.0%}'.format(values[1]) +'), te sugerimos consultar a un médico especialista en el menor tiempo posible.'
     elif values[0]<=0.25: 
-            recomendación = 'De acuerdo con tus características, la probabilidad de tener una enfermedad cardiaca es muy alta, deberias consultar a un médico especialista de inmediato para confirmar esto y si es así, iniciar un tratamiento.'
+            recomendación = 'De acuerdo con tus características, la probabilidad de tener una enfermedad cardiaca es muy alta (' +'{:.0%}'.format(values[1]) + '), deberias consultar a un médico especialista de inmediato para confirmar esto y si es así, iniciar un tratamiento.'
     else: 
         recomendación = "Lamentamos informarle que no tenemos evidencia para el caso presentado, por lo que no podemos estimarlo."
        
