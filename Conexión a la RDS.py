@@ -21,4 +21,5 @@ from sqlalchemy import create_engine
 engine = create_engine('postgresql://postgres:proyecto2@proy2database.czhxhldkmqh7.us-east-1.rds.amazonaws.com/processed_cleveland')
 datos_iniciales.to_sql('data', con=engine, if_exists='replace', index=False)
 
-pd.read_sql('SELECT * FROM data', engine)
+tabla=pd.read_sql('SELECT * FROM data', engine)
+print(tabla.head())
