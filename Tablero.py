@@ -11,7 +11,7 @@ from dash import dcc  # dash core components
 from dash.dependencies import Input, Output
 from pgmpy.inference import VariableElimination
 import plotly.express as px
-import plotly.graph_objs as go
+
 from pgmpy.readwrite import BIFReader
 
 import pandas as pd
@@ -27,11 +27,74 @@ for i in datos_iniciales.index:
   else:
     datos_iniciales.loc[i, "num"] = 1
 
-reader = BIFReader('C:/Users/kathe/OneDrive - Universidad de los Andes/Séptimo semestre/Analítica computacional/Proyecto 2/ModeloK2.bif')
+datos = datos_iniciales.copy()
+for i in range(0,297):
+  if datos_iniciales.loc[i, 'age'] <= 40:
+    datos.loc[i, 'age'] = 1
+  elif datos_iniciales.loc[i, 'age'] > 40 and datos_iniciales.loc[i, 'age'] <= 50:
+    datos.loc[i, 'age'] = 2
+  elif datos_iniciales.loc[i, 'age'] > 50 and datos_iniciales.loc[i, 'age'] <= 60:
+    datos.loc[i, 'age'] = 3
+  else:
+    datos.loc[i, 'age'] = 4
+
+for i in range(0,297):
+  if datos_iniciales.loc[i, "trestbps"] <= 120:
+    datos.loc[i, "trestbps"] = 1
+  elif datos_iniciales.loc[i, "trestbps"] > 120 and datos_iniciales.loc[i, "trestbps"] <= 139:
+    datos.loc[i, "trestbps"] = 2
+  elif datos_iniciales.loc[i, "trestbps"] >= 140 and datos_iniciales.loc[i, "trestbps"] <= 159:
+    datos.loc[i, "trestbps"] = 3
+  elif datos_iniciales.loc[i, "trestbps"] >= 160 and datos_iniciales.loc[i, "trestbps"] <= 179:
+    datos.loc[i, "trestbps"] = 4
+  else:
+    datos.loc[i, "trestbps"] = 5
+    
+for i in range(0,297):
+  if datos_iniciales.loc[i, "chol"] <= 200:
+    datos.loc[i, "chol"] = 1
+  elif datos_iniciales.loc[i, "chol"] > 200 and datos_iniciales.loc[i, "chol"] < 240:
+    datos.loc[i, "chol"] = 2
+  else:
+    datos.loc[i, "chol"] = 3
+    
+for i in range(0,297):
+  if datos_iniciales.loc[i, "thalach"] <= 120:
+    datos.loc[i, "thalach"] = 1
+  elif datos_iniciales.loc[i, "thalach"] > 120 and datos_iniciales.loc[i, "thalach"] <= 140:
+    datos.loc[i, "thalach"] = 2
+  elif datos_iniciales.loc[i, "thalach"] > 140 and datos_iniciales.loc[i, "thalach"] < 160:
+    datos.loc[i, "thalach"] = 3
+  else:
+    datos.loc[i, "thalach"] = 4
+    
+for i in range(0,297):
+  if datos_iniciales.loc[i, "oldpeak"] <= 1:
+    datos.loc[i, "oldpeak"] = 1
+  elif datos_iniciales.loc[i, "oldpeak"] > 1 and datos_iniciales.loc[i, "oldpeak"] <= 2:
+    datos.loc[i, "oldpeak"] = 2
+  else:
+    datos.loc[i, "oldpeak"] = 3
+
+
+# Read model from BIF file 
+reader = BIFReader("ModeloK2.bif")
 modelo = reader.get_model()
 
-modelo.ckeck_model()
+# Print model 
+print(modelo)
+
+
+
+from pgmpy.estimators import BayesianEstimator
+emv = BayesianEstimator(model=modelo, data=datos)
+
+modelo.fit(data=datos, estimator = BayesianEstimator)   
+modelo.check_model()
+
 infer = VariableElimination(modelo)
+
+
 
 #external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -82,6 +145,8 @@ df1 = pd.DataFrame({
 
 fig1 = px.bar(df1, x='Sexo', y='Número de personas', color='Diagnóstico', barmode='group', color_discrete_sequence=['greenyellow', 'red'])
 fig1.update_layout(legend=dict(yanchor="bottom", y=1, xanchor="left", x=0.01))
+fig1.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)")  
+
 
 # Gráfico 2
 valores2 = [0,0,0,0,0,0,0,0,0,0,0,0]
@@ -122,6 +187,8 @@ df2 = pd.DataFrame({
 
 fig2 = px.bar(df2, x='Edad', y='Número de personas', color='Nivel', barmode='group', color_discrete_sequence=['greenyellow', 'orange', 'red'])
 fig2.update_layout(legend=dict(yanchor="bottom", y=1, xanchor="left", x=0.01))
+fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)")  
+
 
 # Gráfico 3
 valores3 = [0,0,0,0,0,0,0,0]
@@ -156,6 +223,7 @@ df3 = pd.DataFrame({
 
 fig3 = px.bar(df3, x='Edad', y='Proporción de personas', color='Diagnóstico', barmode='stack', color_discrete_sequence=['greenyellow', 'red'])
 fig3.update_layout(legend=dict(yanchor="bottom", y=1, xanchor="left", x=0.01))
+fig3.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)")  
 
 #Crear gráficos
 tab1_content = dbc.Card(
@@ -319,7 +387,7 @@ def update_pie_chart(input_age, input_sex, input_chol, input_trestbps, input_tha
             aux[valores[i]]= respuesta[i]
         
     if len(aux)==0:
-        posterior_p = infer.query(["num"], evidence={'age':1,'sex':1,'chol':1,'trestbps':1,'thal':3,'fbs':1})
+        posterior_p = infer.query(["num"], evidence={'age':2,'sex':1,'chol':2,'trestbps':1,'thal':3,'fbs':1})
 
     else:
         posterior_p = infer.query(["num"], evidence=aux)
@@ -332,9 +400,7 @@ def update_pie_chart(input_age, input_sex, input_chol, input_trestbps, input_tha
     
     
     # Crear el objeto Pie de Plotly
-    #if isinstance(values[0], (int, float)):
-    
-     
+    #if isinstance(values[0], (int, float))
         
     import plotly.graph_objs as go
     figura = go.Figure(go.Pie(labels=labels, 
