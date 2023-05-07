@@ -10,6 +10,8 @@ from dash import dcc  # dash core components
 #from dash import html # dash html components
 from dash.dependencies import Input, Output
 from pgmpy.inference import VariableElimination
+import plotly.express as px
+import plotly.graph_objs as go
 
 
 import pandas as pd
@@ -18,11 +20,15 @@ columnas = ["age","sex","cp","trestbps","chol","fbs","restecg","thalach","exang"
 datos_iniciales = pd.read_csv('https://raw.githubusercontent.com/karen0c/Proyecto_1_ACTD/main/processed.cleveland.data',header=None, names=columnas, na_values="?")
 
 datos_iniciales = datos_iniciales.dropna().reset_index(drop=True) #elimina filas con valores faltantes
-#print(datos_iniciales.head())
-#print(datos_iniciales.tail())
+
+for i in datos_iniciales.index:
+  if datos_iniciales.loc[i, "num"] == 0:
+    datos_iniciales.loc[i, "num"] = 0
+  else:
+    datos_iniciales.loc[i, "num"] = 1
 
 # crear unos nuevos datos donde guardaremos la información con los datos discretizados
-datos = datos_iniciales
+datos = datos_iniciales.copy()
 for i in range(0,297):
   if datos_iniciales.loc[i, 'age'] <= 40:
     datos.loc[i, 'age'] = 1
@@ -70,35 +76,21 @@ for i in range(0,297):
     datos.loc[i, "oldpeak"] = 2
   else:
     datos.loc[i, "oldpeak"] = 3
-    
-for i in datos_iniciales.index:
-  if datos_iniciales.loc[i, "num"] == 0:
-    datos.loc[i, "num"] = 0
-  else:
-    datos.loc[i, "num"] = 1
-
-
 
 #pip install pgmpy 
-
 #pip install numpy
 
 from pgmpy.models import BayesianNetwork
 #from pgmpy.factors.discrete import TabularCPD
 
-modelo = BayesianNetwork([("sex", "chol"), ("age", "chol"), ("age", "fbs"),("thal", "trestbps"), ("chol", "num"),("fbs", "trestbps"), ("trestbps", "num"),("num", "ca"),("num", "thalach"),("num", "exang"),("num", "restecg"),("exang", "cp"),("cp", "oldpeak"),( "restecg","oldpeak"),("restecg","slope")])
+# Modelo obtenido mediante método por puntaje K2
+modelo = BayesianNetwork([('age', 'chol'), ('sex', 'chol'), ('fbs', 'thalach'), ('fbs', 'ca'), ('fbs', 'thal'), ('restecg', 'trestbps'), ('restecg', 'thal'), ('restecg', 'age'), ('thalach', 'chol'), ('exang', 'cp'), ('exang', 'thalach'), ('exang', 'thal'), ('exang', 'oldpeak'), ('oldpeak', 'thalach'), ('oldpeak', 'slope'), ('slope', 'chol'), ('ca', 'num'), ('thal', 'oldpeak'), ('thal', 'trestbps'), ('thal', 'sex'), ('num', 'thal'), ('num', 'exang')])
 
 from pgmpy.estimators import BayesianEstimator
-
 emv = BayesianEstimator(model=modelo, data=datos)
-
 modelo.fit(data=datos, estimator = BayesianEstimator) 
 
-#for i in modelo.nodes(): 
- # print(modelo.get_cpds(i)) 
-
 infer = VariableElimination(modelo)
-
 
 #external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -107,34 +99,145 @@ import dash_html_components as html
 
 # Crear la aplicación Dash
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-
 server = app.server
 
 # Define el diseño de la aplicación Dash con dos pestañas
 
-
 # Definir el contenido de la primera pestaña
+
+# Obtener la base de datos
+from sqlalchemy import create_engine
+engine = create_engine('postgresql://postgres:proyecto2@proy2database.czhxhldkmqh7.us-east-1.rds.amazonaws.com/processed_cleveland')
+datos_iniciales.to_sql('data', con=engine, if_exists='replace', index=False)
+
+tabla=pd.read_sql('SELECT * FROM data', engine)
+
+# Diseñar visualizaciones
+
+#Gráfico 1
+
+M_sin = 0
+M_con = 0
+F_sin = 0
+F_con = 0
+
+for i in tabla.index:
+    if tabla.loc[i,'sex']==1:
+        if tabla.loc[i,'num']==0:
+            M_sin = M_sin+1
+        else:
+            M_con = M_con+1
+    else:
+        if tabla.loc[i,'num']==0:
+            F_sin = F_sin+1
+        else:
+            F_con = F_con+1
+        
+df1 = pd.DataFrame({
+    "Sexo": ["Hombre", "Hombre", "Mujer", "Mujer"],
+    "Número de personas": [M_sin, M_con, F_sin, F_con],
+    "Diagnóstico": ["Sin presencia de enfermedad", "Con presencia de enfermedad", "Sin presencia de enfermedad", "Con presencia de enfermedad"]
+})
+
+fig1 = px.bar(df1, x='Sexo', y='Número de personas', color='Diagnóstico', barmode='group', color_discrete_sequence=['greenyellow', 'red'])
+fig1.update_layout(legend=dict(yanchor="bottom", y=1, xanchor="left", x=0.01))
+
+# Gráfico 2
+valores2 = [0,0,0,0,0,0,0,0,0,0,0,0]
+for i in tabla.index:
+    if tabla.loc[i, 'chol']<=200:
+        if tabla.loc[i, 'age']<40:
+            valores2[0] = valores2[0]+1
+        elif tabla.loc[i, 'age']>=40 and tabla.loc[i, 'age']<50:
+            valores2[1] = valores2[1]+1
+        elif tabla.loc[i, 'age']>=50 and tabla.loc[i, 'age']<60:
+            valores2[2] = valores2[2]+1
+        else:
+            valores2[3] = valores2[3]+1
+    elif tabla.loc[i, 'chol']>200 and tabla.loc[i, 'chol']<=240:
+            if tabla.loc[i, 'age']<40:
+                valores2[4] = valores2[4]+1
+            elif tabla.loc[i, 'age']>=40 and tabla.loc[i, 'age']<50:
+                valores2[5] = valores2[5]+1
+            elif tabla.loc[i, 'age']>=50 and tabla.loc[i, 'age']<60:
+                valores2[6] = valores2[6]+1
+            else:
+                valores2[7] = valores2[7]+1
+    else:
+        if tabla.loc[i, 'age']<40:
+            valores2[8] = valores2[8]+1
+        elif tabla.loc[i, 'age']>=40 and tabla.loc[i, 'age']<50:
+            valores2[9] = valores2[9]+1
+        elif tabla.loc[i, 'age']>=50 and tabla.loc[i, 'age']<60:
+            valores2[10] = valores2[10]+1
+        else:
+            valores2[11] = valores2[11]+1
+            
+df2 = pd.DataFrame({
+    "Edad": ["Menos de 40 años", "Entre 41 y 50 años", "Entre 51 y 60 años", "Más de 60 años", "Menos de 40 años", "Entre 41 y 50 años", "Entre 51 y 60 años", "Más de 60 años", "Menos de 40 años", "Entre 41 y 50 años", "Entre 51 y 60 años", "Más de 60 años"],
+    "Número de personas": valores2,
+    "Nivel": ["Nivel de colesterol deseable", "Nivel de colesterol deseable", "Nivel de colesterol deseable", "Nivel de colesterol deseable", "Nivel de colesterol límite", "Nivel de colesterol límite", "Nivel de colesterol límite", "Nivel de colesterol límite", "Nivel de colesterol alto", "Nivel de colesterol alto", "Nivel de colesterol alto", "Nivel de colesterol alto"]
+})
+
+fig2 = px.bar(df2, x='Edad', y='Número de personas', color='Nivel', barmode='group', color_discrete_sequence=['greenyellow', 'orange', 'red'])
+fig2.update_layout(legend=dict(yanchor="bottom", y=1, xanchor="left", x=0.01))
+
+# Gráfico 3
+valores3 = [0,0,0,0,0,0,0,0]
+for i in tabla.index:
+    if tabla.loc[i, 'num'] == 0:
+        if tabla.loc[i, 'age']<40:
+            valores3[0] = valores3[0]+1
+        elif tabla.loc[i, 'age']>=40 and tabla.loc[i, 'age']<50:
+            valores3[1] = valores3[1]+1
+        elif tabla.loc[i, 'age']>=50 and tabla.loc[i, 'age']<60:
+            valores3[2] = valores3[2]+1
+        else:
+            valores3[3] = valores3[3]+1
+    else:
+        if tabla.loc[i, 'age']<40:
+            valores3[4] = valores3[4]+1
+        elif tabla.loc[i, 'age']>=40 and tabla.loc[i, 'age']<50:
+            valores3[5] = valores3[5]+1
+        elif tabla.loc[i, 'age']>=50 and tabla.loc[i, 'age']<60:
+            valores3[6] = valores3[6]+1
+        else:
+            valores3[7] = valores3[7]+1
+
+porcentajes = [round(valores3[0]/(valores3[0]+valores3[4]),3), round(valores3[1]/(valores3[1]+valores3[5]),3), round(valores3[2]/(valores3[2]+valores3[6]),3), round(valores3[3]/(valores3[3]+valores3[7]),3), round(valores3[4]/(valores3[0]+valores3[4]),3), round(valores3[5]/(valores3[1]+valores3[5]),3), round(valores3[6]/(valores3[2]+valores3[6]),3), round(valores3[7]/(valores3[3]+valores3[7]),3)]   
+
+
+df3 = pd.DataFrame({
+    "Edad": ["Menos de 40 años", "Entre 41 y 50 años", "Entre 51 y 60 años", "Más de 60 años", "Menos de 40 años", "Entre 41 y 50 años", "Entre 51 y 60 años", "Más de 60 años"],
+    "Proporción de personas": porcentajes,
+    "Diagnóstico": ["Sin presencia de enfermedad", "Sin presencia de enfermedad", "Sin presencia de enfermedad", "Sin presencia de enfermedad","Con presencia de enfermedad", "Con presencia de enfermedad", "Con presencia de enfermedad", "Con presencia de enfermedad"]
+})
+
+fig3 = px.bar(df3, x='Edad', y='Proporción de personas', color='Diagnóstico', barmode='stack', color_discrete_sequence=['greenyellow', 'red'])
+fig3.update_layout(legend=dict(yanchor="bottom", y=1, xanchor="left", x=0.01))
+
+#Crear gráficos
 tab1_content = dbc.Card(
     dbc.CardBody([
     html.H2('¿Qué dicen los datos?'),
     html.P(children='Queremos proporcionarte información relevante sobre la enfermedad cardiaca, basada en estadísticas del conjunto de datos Heart Disease disponible en el repositorio de la Universidad de California en Irvine. Esperamos que esta información sea útil para ti.' ),
     html.Div([
-        
+  
     html.Div([
-        dcc.Graph(id='grafico1')],
+        dcc.Graph(id='grafico1', figure = fig1)],
         style={'width': '33%', 'display': 'inline-block'}),
         
     html.Div([
-        dcc.Graph(id='grafico2')],
+        dcc.Graph(id='grafico2', figure = fig3)],
         style={'width': '33%', 'display': 'inline-block'}),
         
     html.Div([
-        dcc.Graph(id='grafico3')],
+        dcc.Graph(id='grafico3', figure = fig2)],
         style={'width': '33%', 'display': 'inline-block'})
     ], style={'display': 'flex'})
     
 ],  style={'margin': '30px'}))
- 
+
 
 tab2_content=dbc.Card(
     dbc.CardBody([
@@ -276,6 +379,7 @@ def update_pie_chart(input_age, input_sex, input_chol, input_trestbps, input_tha
         
     if len(aux)==0:
         posterior_p = infer.query(["num"], evidence={'age':1,'sex':1,'chol':1,'trestbps':1,'thal':3,'fbs':1})
+
     else:
         posterior_p = infer.query(["num"], evidence=aux)
     
@@ -317,9 +421,6 @@ def update_pie_chart(input_age, input_sex, input_chol, input_trestbps, input_tha
         recomendación = "Lamentamos informarle que no tenemos evidencia para el caso presentado, por lo que no podemos estimarlo."
        
     return figura, recomendación
-
-
-
 
 if __name__ == '__main__':
     app.run_server(debug=True)
