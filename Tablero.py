@@ -12,7 +12,7 @@ from dash.dependencies import Input, Output
 from pgmpy.inference import VariableElimination
 import plotly.express as px
 import plotly.graph_objs as go
-
+from pgmpy.readwrite import BIFReader
 
 import pandas as pd
 
@@ -27,69 +27,10 @@ for i in datos_iniciales.index:
   else:
     datos_iniciales.loc[i, "num"] = 1
 
-# crear unos nuevos datos donde guardaremos la información con los datos discretizados
-datos = datos_iniciales.copy()
-for i in range(0,297):
-  if datos_iniciales.loc[i, 'age'] <= 40:
-    datos.loc[i, 'age'] = 1
-  elif datos_iniciales.loc[i, 'age'] > 40 and datos_iniciales.loc[i, 'age'] <= 50:
-    datos.loc[i, 'age'] = 2
-  elif datos_iniciales.loc[i, 'age'] > 50 and datos_iniciales.loc[i, 'age'] <= 60:
-    datos.loc[i, 'age'] = 3
-  else:
-    datos.loc[i, 'age'] = 4
+reader = BIFReader('C:/Users/kathe/OneDrive - Universidad de los Andes/Séptimo semestre/Analítica computacional/Proyecto 2/ModeloK2.bif')
+modelo = reader.get_model()
 
-for i in range(0,297):
-  if datos_iniciales.loc[i, "trestbps"] <= 120:
-    datos.loc[i, "trestbps"] = 1
-  elif datos_iniciales.loc[i, "trestbps"] > 120 and datos_iniciales.loc[i, "trestbps"] <= 139:
-    datos.loc[i, "trestbps"] = 2
-  elif datos_iniciales.loc[i, "trestbps"] >= 140 and datos_iniciales.loc[i, "trestbps"] <= 159:
-    datos.loc[i, "trestbps"] = 3
-  elif datos_iniciales.loc[i, "trestbps"] >= 160 and datos_iniciales.loc[i, "trestbps"] <= 179:
-    datos.loc[i, "trestbps"] = 4
-  else:
-    datos.loc[i, "trestbps"] = 5
-    
-for i in range(0,297):
-  if datos_iniciales.loc[i, "chol"] <= 200:
-    datos.loc[i, "chol"] = 1
-  elif datos_iniciales.loc[i, "chol"] > 200 and datos_iniciales.loc[i, "chol"] < 240:
-    datos.loc[i, "chol"] = 2
-  else:
-    datos.loc[i, "chol"] = 3
-    
-for i in range(0,297):
-  if datos_iniciales.loc[i, "thalach"] <= 120:
-    datos.loc[i, "thalach"] = 1
-  elif datos_iniciales.loc[i, "thalach"] > 120 and datos_iniciales.loc[i, "thalach"] <= 140:
-    datos.loc[i, "thalach"] = 2
-  elif datos_iniciales.loc[i, "thalach"] > 140 and datos_iniciales.loc[i, "thalach"] < 160:
-    datos.loc[i, "thalach"] = 3
-  else:
-    datos.loc[i, "thalach"] = 4
-    
-for i in range(0,297):
-  if datos_iniciales.loc[i, "oldpeak"] <= 1:
-    datos.loc[i, "oldpeak"] = 1
-  elif datos_iniciales.loc[i, "oldpeak"] > 1 and datos_iniciales.loc[i, "oldpeak"] <= 2:
-    datos.loc[i, "oldpeak"] = 2
-  else:
-    datos.loc[i, "oldpeak"] = 3
-
-#pip install pgmpy 
-#pip install numpy
-
-from pgmpy.models import BayesianNetwork
-#from pgmpy.factors.discrete import TabularCPD
-
-# Modelo obtenido mediante método por puntaje K2
-modelo = BayesianNetwork([('age', 'chol'), ('sex', 'chol'), ('fbs', 'thalach'), ('fbs', 'ca'), ('fbs', 'thal'), ('restecg', 'trestbps'), ('restecg', 'thal'), ('restecg', 'age'), ('thalach', 'chol'), ('exang', 'cp'), ('exang', 'thalach'), ('exang', 'thal'), ('exang', 'oldpeak'), ('oldpeak', 'thalach'), ('oldpeak', 'slope'), ('slope', 'chol'), ('ca', 'num'), ('thal', 'oldpeak'), ('thal', 'trestbps'), ('thal', 'sex'), ('num', 'thal'), ('num', 'exang')])
-
-from pgmpy.estimators import BayesianEstimator
-emv = BayesianEstimator(model=modelo, data=datos)
-modelo.fit(data=datos, estimator = BayesianEstimator) 
-
+modelo.ckeck_model()
 infer = VariableElimination(modelo)
 
 #external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
